@@ -7,6 +7,8 @@
 #include <linux/module.h>
 #include <linux/mutex.h>
 
+#include "bignum/bn.h"
+
 MODULE_LICENSE("Dual MIT/GPL");
 MODULE_AUTHOR("National Cheng Kung University, Taiwan");
 MODULE_DESCRIPTION("Fibonacci engine driver");
@@ -26,29 +28,18 @@ static DEFINE_MUTEX(fib_mutex);
 
 static ktime_t kt;
 
-
-static long long fib_sequence(long long k)
+/* FIXME: use clz/ctz and fast algorithms to speed up */
+static void fib_time_proxy(long long k)
 {
-    /* FIXME: use clz/ctz and fast algorithms to speed up */
-    long long f[k + 2];
+    bn_t fib = BN_INITIALIZER;
 
-    f[0] = 0;
-    f[1] = 1;
-
-    for (int i = 2; i <= k; i++) {
-        f[i] = f[i - 1] + f[i - 2];
-    }
-
-    return f[k];
-}
-
-static long long fib_time_proxy(long long k)
-{
     kt = ktime_get();
-    long long result = fib_sequence(k);
+    fibonacci(k, fib);
     kt = ktime_sub(ktime_get(), kt);
 
-    return result;
+    bn_print_dec(fib);
+
+    return;
 }
 
 static int fib_open(struct inode *inode, struct file *file)
@@ -72,7 +63,8 @@ static ssize_t fib_read(struct file *file,
                         size_t size,
                         loff_t *offset)
 {
-    return (ssize_t) fib_time_proxy(*offset);
+    fib_time_proxy(*offset);
+    return 0;
 }
 
 /* write operation is skipped */
