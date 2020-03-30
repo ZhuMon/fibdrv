@@ -1,0 +1,3 @@
+[submodule "bignum"]
+	path = bignum
+	url = https://github.com/ZhuMon/bignum.git
